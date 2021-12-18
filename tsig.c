@@ -12,7 +12,6 @@ int create_child();
 int child_labour();
 
 int num_generated = 1;
-// int child_counter = 0;
 int children_pids[NUM_CHILD];
 
 int main(){
