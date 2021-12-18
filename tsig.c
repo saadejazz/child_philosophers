@@ -2,14 +2,18 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <string.h>
+#include <stdlib.h>
 
-#define NUM_CHILD 7
-#define SLEEP_TIME 2.5
+#define NUM_CHILD 4
+#define SLEEP_TIME 1
 
 int create_child();
 int child_labour();
 
-int num_generated = 2;
+int num_generated = 1;
+// int child_counter = 0;
+int children_pids[NUM_CHILD];
 
 int main(){
     create_child();
@@ -17,6 +21,8 @@ int main(){
 }
 
 int create_child(){
+    // a recursive function in which only the parent procreates :/
+
     pid_t process_id = fork();
     // success in process creation
     if (process_id == 0){
@@ -29,13 +35,24 @@ int create_child(){
     }
     // prints after processes all exit
     else{
-        if (num_generated <= NUM_CHILD){
-            num_generated++;
+        if (++num_generated <= NUM_CHILD){
+            // keep track of children so they don't get lost - they are still young.
+            children_pids[num_generated - 2] = process_id;
+
+            int status;
+            int k = waitpid(process_id, &status, WNOHANG);
+
+            printf("%d\n", k);
+
             create_child();
         }
         else{
+            // store the last child
+            children_pids[num_generated - 2] = process_id;
             wait(NULL);
             printf("parent[%d]: all children processes completed.\n", getpid());
+            printf("%d, %d, %d, %d\n", children_pids[0], children_pids[1], children_pids[2], children_pids[3]);
+            return 0;
         }
     }
 }
