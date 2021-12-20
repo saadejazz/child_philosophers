@@ -59,12 +59,13 @@ int create_child(){
             int num_terminations = 0;
             for (int i = 0; i < NUM_CHILD; i ++){
                 if (children_pids[i]){
+                    // wait for an exit code, determine the pid of the exiting child process
                     int exit_pid = wait(&ecode);
                     printf("parent[%d]: received exit code %d from child with pid %d.\n", c_id, ecode, exit_pid);
                     num_terminations++;
                 }
             }
-            // wait(NULL); //change this to wait for all ... count number of terminations...
+            // print the number of termination codes received.
             printf("parent[%d]: received %d exit codes.\n", c_id, num_terminations);
             printf("parent[%d]: all children processes exited.\n", c_id);
         }
