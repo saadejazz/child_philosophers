@@ -5,6 +5,7 @@
 
 #define NUM_CHILD 5
 #define SLEEP_TIME 10
+#define FORK_DELAY 1
 
 int create_child();
 int child_labour();
@@ -12,7 +13,6 @@ void slay_all_children();
 
 int num_generated = 1;
 int children_pids[NUM_CHILD];
-int wstatus;
 
 int main(){
     create_child();
@@ -42,7 +42,9 @@ int create_child(){
         if (++num_generated <= NUM_CHILD){
             // keep track of children so they don't get lost - they are still young.
             children_pids[num_generated - 2] = process_id;
-            sleep(1);
+            
+            // procreate again after a delay
+            sleep(FORK_DELAY);
             create_child();
         }
         else{
@@ -82,6 +84,8 @@ int child_labour(){
 }
 
 void slay_all_children(){
+    int wstatus;
+
     // kill every process with pid stored in children_pids
     for (int i = 0; i < NUM_CHILD; i++){
         if (children_pids[i]){
