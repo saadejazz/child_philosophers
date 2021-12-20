@@ -36,7 +36,7 @@ int main(){
         else{
             // keep track of children so they don't get lost - they are still young.
             children_pids[num_generated++] = process_id;
-            sleep(FORK_DELAY);
+            if (num_generated + 1 != NUM_CHILD) sleep(FORK_DELAY);
         }
     }
 
