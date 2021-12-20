@@ -9,70 +9,58 @@
 
 int create_child();
 int child_labour();
-void slay_all_children();
-
-int num_generated = 1;
-int children_pids[NUM_CHILD];
+void slay_all_children(int children_pids[]);
 
 int main(){
-    create_child();
-    return 0;
-}
 
-int create_child(){
-    /*a recursive function in which only the parent procreates :| */
-    
-    int process_id = fork();
-    
-    // success in process creation (block goes to child)
-    if (process_id == 0){
-        printf("parent[%d]: child process successfully created with PID: %d.\n", getppid(), getpid());
-        return child_labour();
-    }
-    // error in process creation (block goes to parent)
-    else if (process_id < 0){
-        printf("parent[%d]: failed to create a child process.\n", getpid());
+    int num_generated = 0;
+    int children_pids[NUM_CHILD];
 
-        // latest procreation failed, kill all children with SIGTERM (or a G3) ;( and exit with code 1
-        slay_all_children();
-        return 1;
-    }
-    // print after processes all exit (block goes to parent)
-    else{
-        if (++num_generated <= NUM_CHILD){
-            // keep track of children so they don't get lost - they are still young.
-            children_pids[num_generated - 2] = process_id;
-            
-            // procreate again after a delay
-            sleep(FORK_DELAY);
-            create_child();
+    for (int i = 0; i < NUM_CHILD; i++){
+        int process_id = fork();
+    
+        // success in process creation (block goes to child)
+        if (process_id == 0){
+            printf("parent[%d]: child process successfully created with PID: %d.\n", getppid(), getpid());
+            return child_labour();
         }
+        // error in process creation (block goes to parent)
+        else if (process_id < 0){
+            printf("parent[%d]: failed to create a child process.\n", getpid());
+
+            // latest procreation failed, kill all children with SIGTERM (or a G3) ;( and exit with code 1
+            slay_all_children(children_pids);
+            return 1;
+        }
+        // block for parent process
         else{
-            int c_id = getpid();
-            
-            // store the last child
-            children_pids[num_generated - 2] = process_id;
-            
-            // notify creation of all children
-            printf("parent[%d]: all children processes created.\n", c_id);
-            
-            // wait for all children to exit, then notify and exit.
-            int exit_code;
-            int exit_pid;
-            int num_terminations = 0;
-
-            while ((exit_pid = wait(&exit_code)) != -1){
-                // wait for an exit code, determine the pid of the exiting child process
-                printf("parent[%d]: received exit code %d from child with pid %d.\n", c_id, exit_code, exit_pid);
-                num_terminations++;
-            }
-
-            // print the number of termination codes received.
-            printf("parent[%d]: received %d exit codes.\n", c_id, num_terminations);
-            printf("parent[%d]: all children processes exited.\n", c_id);
+            // keep track of children so they don't get lost - they are still young.
+            children_pids[num_generated++] = process_id;
+            sleep(FORK_DELAY);
         }
-        return 0;
     }
+
+    int c_id = getpid();
+
+    // after every child has been created, notify creation of all children 
+    printf("parent[%d]: all children processes created.\n", c_id);
+    
+    // wait for all children to exit, then notify and exit.
+    int exit_code;
+    int exit_pid;
+    int num_terminations = 0;
+
+    while ((exit_pid = wait(&exit_code)) != -1){
+        // wait for an exit code, determine the pid of the exiting child process
+        printf("parent[%d]: received exit code %d from child with pid %d.\n", c_id, exit_code, exit_pid);
+        num_terminations++;
+    }
+
+    // print the number of termination codes received.
+    printf("parent[%d]: received %d exit codes.\n", c_id, num_terminations);
+    printf("parent[%d]: all children processes exited.\n", c_id);
+
+    return 0;
 }
 
 int child_labour(){
@@ -83,7 +71,7 @@ int child_labour(){
     return 0;
 }
 
-void slay_all_children(){
+void slay_all_children(int children_pids[]){
     int wstatus;
 
     // kill every process with pid stored in children_pids
