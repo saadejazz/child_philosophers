@@ -22,22 +22,22 @@ int main(){
 int create_child(){
     /*a recursive function in which only the parent procreates :| */
     
-    pid_t process_id = fork();
+    int process_id = fork();
     
-    // success in process creation
+    // success in process creation (block goes to child)
     if (process_id == 0){
         printf("parent[%d]: child process successfully created with PID: %d.\n", getppid(), getpid());
         return child_labour();
     }
-    // error in process creation
+    // error in process creation (block goes to parent)
     else if (process_id < 0){
         printf("parent[%d]: failed to create a child process.\n", getpid());
 
-        // latest procreation failed, kill all children with SIGTERM (or a G3) ;(
+        // latest procreation failed, kill all children with SIGTERM (or a G3) ;( and exit with code 1
         slay_all_children();
         return 1;
     }
-    // prints after processes all exit
+    // print after processes all exit (block goes to parent)
     else{
         if (++num_generated <= NUM_CHILD){
             // keep track of children so they don't get lost - they are still young.
@@ -49,7 +49,6 @@ int create_child(){
         }
         else{
             int c_id = getpid();
-            int ecode;
             
             // store the last child
             children_pids[num_generated - 2] = process_id;
@@ -58,15 +57,16 @@ int create_child(){
             printf("parent[%d]: all children processes created.\n", c_id);
             
             // wait for all children to exit, then notify and exit.
+            int exit_code;
+            int exit_pid;
             int num_terminations = 0;
-            for (int i = 0; i < NUM_CHILD; i ++){
-                if (children_pids[i]){
-                    // wait for an exit code, determine the pid of the exiting child process
-                    int exit_pid = wait(&ecode);
-                    printf("parent[%d]: received exit code %d from child with pid %d.\n", c_id, ecode, exit_pid);
-                    num_terminations++;
-                }
+
+            while ((exit_pid = wait(&exit_code)) != -1){
+                // wait for an exit code, determine the pid of the exiting child process
+                printf("parent[%d]: received exit code %d from child with pid %d.\n", c_id, exit_code, exit_pid);
+                num_terminations++;
             }
+
             // print the number of termination codes received.
             printf("parent[%d]: received %d exit codes.\n", c_id, num_terminations);
             printf("parent[%d]: all children processes exited.\n", c_id);
