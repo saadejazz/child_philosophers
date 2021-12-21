@@ -87,7 +87,8 @@ void slay_all_children(int children_pids[]){
                 
                 // check if SIGTERM resulted in the killing of the child
                 int sig = waitpid(child_id, &wstatus, WUNTRACED);
-                if (sig){
+                if (sig != -1){
+                    // printf("parent[%d]: child process with id %d ended with a %d signal.\n", c_id, child_id, WTERMSIG(wstatus));
                     if (WTERMSIG(wstatus) == SIGTERM) printf("parent[%d]: child process with id %d ended with a SIGTERM signal.\n", c_id, child_id);
                     else printf("parent[%d]: child process with id %d ended with a %d signal.\n", c_id, child_id, WTERMSIG(wstatus));
                 }
