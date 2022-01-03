@@ -21,7 +21,7 @@ int main(){
     
         // success in process creation (block goes to child)
         if (process_id == 0){
-            printf("parent[%d]: child process successfully created with PID: %d.\n", getppid(), getpid());
+            printf("child[%d]: process successfully created.\n", getpid());
             return child_labour();
         }
         // error in process creation (block goes to parent)
