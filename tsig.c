@@ -9,15 +9,15 @@
 
 int create_child();
 int child_labour();
-void slay_all_children(int children_pids[]);
 
 int main(){
 
     int num_generated = 0;
     int children_pids[NUM_CHILD];
+    int process_id;
 
     for (int i = 0; i < NUM_CHILD; i++){
-        int process_id = fork();
+        process_id = fork();
     
         // success in process creation (block goes to child)
         if (process_id == 0){
@@ -26,17 +26,27 @@ int main(){
         }
         // error in process creation (block goes to parent)
         else if (process_id < 0){
+            int c_id = getpid();
             printf("parent[%d]: failed to create a child process.\n", getpid());
 
-            // latest procreation failed, kill all children with SIGTERM (or a G3) ;( and exit with code 1
-            slay_all_children(children_pids);
+            // latest procreation failed, kill all children with SIGTERM and exit with code 1
+            for (int i = 0; i < NUM_CHILD; i++){
+                if (children_pids[i]){
+                    int c_id = getpid();
+                    int child_id = children_pids[i];
+                    kill(children_pids[i], SIGTERM);
+                    printf("parent[%d]: child process with id %d sent a termination signal.\n", c_id, child_id);
+                } 
+            }
             return 1;
         }
         // block for parent process
         else{
-            // keep track of children so they don't get lost - they are still young.
+            // keep track of children so they don't get lost
             children_pids[num_generated++] = process_id;
-            if (num_generated + 1 != NUM_CHILD) sleep(FORK_DELAY);
+
+            // sleep after creation of each child
+            sleep(FORK_DELAY);
         }
     }
 
@@ -69,32 +79,4 @@ int child_labour(){
     sleep(SLEEP_TIME);
     printf("child[%d]: process completed.\n", c_id);
     return 0;
-}
-
-void slay_all_children(int children_pids[]){
-    int wstatus;
-
-    // kill every process with pid stored in children_pids
-    for (int i = 0; i < NUM_CHILD; i++){
-        if (children_pids[i]){
-            int c_id = getpid();
-            int child_id = children_pids[i];
-
-            // check if kill signal was sent successfully. may not be sent in case of permission errors
-            int check = kill(children_pids[i], SIGTERM);
-            if (check == 0){
-                printf("parent[%d]: child process with id %d sent a termination signal.\n", c_id, child_id);
-                
-                // check if SIGTERM resulted in the killing of the child
-                int sig = waitpid(child_id, &wstatus, WUNTRACED);
-                if (sig){
-                    if (WTERMSIG(wstatus) == SIGTERM) printf("parent[%d]: child process with id %d ended with a SIGTERM signal.\n", c_id, child_id);
-                    else printf("parent[%d]: child process with id %d ended with a %d signal.\n", c_id, child_id, WTERMSIG(wstatus));
-                }
-                else printf("parent[%d]: child process with id %d was not ended with a signal.\n", c_id, child_id);
-
-            } 
-            else printf("parent[%d]: could not send termination signal to child process with id %d.\n", getpid(), child_id);
-        } 
-    }
 }
