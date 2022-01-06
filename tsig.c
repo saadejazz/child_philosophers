@@ -1,10 +1,8 @@
 #include <stdio.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <sys/wait.h>
 #include <stdbool.h>
 #include <signal.h>
-#include <stdlib.h>
 
 #define NUM_CHILD 5
 
@@ -32,8 +30,7 @@ int main(){
         }
         else if (process_id < 0){
             // error in process creation (block goes to parent)
-            int c_id = getpid();
-            printf("parent[%d]: failed to create one child process, aborting...\n", getpid());
+            printf("parent[%d]: failed to create one of the child processes, aborting...\n", getpid());
 
             // kill all children with SIGTERM and exit with code 1
             for (int j = 0; j < i; j++) kill(children_pids[j], SIGTERM);
@@ -61,7 +58,7 @@ int main(){
 
             #ifdef WITH_SIGNALS
                 // check if interrupted
-                if (interrupted) {
+                if (interrupted){
                     // kill all children and leave
                     for (int j = 0; j <= i; j++) kill(children_pids[j], SIGTERM);
                     break;
