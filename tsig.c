@@ -11,14 +11,15 @@
 int child_labour();
 
 #ifdef WITH_SIGNALS
+    // prototypes for signal handlers
     void interrupt();
     void terminate_self();
 
+    // mark for keyboard interrupt
     bool interrupted = false;
 #endif
 
 int main(){
-
     int num_generated = 0;
     int children_pids[NUM_CHILD];
     
@@ -29,13 +30,13 @@ int main(){
     for (int i = 0; i < NUM_CHILD; i++){
         int process_id = fork();
     
-        // success in process creation (block goes to child)
         if (process_id == 0){
+            // success in process creation (block goes to child)
             printf("child[%d]: process successfully created.\n", getpid());
             return child_labour();
         }
-        // error in process creation (block goes to parent)
         else if (process_id < 0){
+            // error in process creation (block goes to parent)
             int c_id = getpid();
             printf("parent[%d]: failed to create one child process, aborting...\n", getpid());
 
@@ -43,8 +44,8 @@ int main(){
             for (int i = 0; i < num_generated; i++) kill(children_pids[i], SIGTERM);
             return 1;
         }
-        // block for parent process
         else{
+            // block for parent process
             #ifdef WITH_SIGNALS
                 // code that only runs once
                 if (first_time){
@@ -68,7 +69,7 @@ int main(){
             #ifdef WITH_SIGNALS
                 // check if interrupted
                 if (interrupted) {
-                    // kill and leave the loop
+                    // kill all children and leave
                     for (int i = 0; i < num_generated; i++) kill(children_pids[i], SIGTERM);
                     break;
                 }
@@ -94,7 +95,7 @@ int main(){
     printf("parent[%d]: received %d exit codes.\n", c_id, num_terminations);
 
     #ifdef WITH_SIGNALS
-        // restoring old service handlers of all the signals
+        // restoring default service handlers of all the signals
         for (int i = 0; i < NSIG; i++) signal(i, SIG_DFL);
     #endif
 
@@ -103,7 +104,7 @@ int main(){
 
 int child_labour(){ 
     #ifdef WITH_SIGNALS
-        // signal handlers
+        // signal handlers for termintaion and interrupt
         signal(SIGINT, SIG_IGN);
         signal(SIGTERM, terminate_self);
     #endif
