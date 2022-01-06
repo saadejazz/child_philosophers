@@ -20,7 +20,6 @@ int child_labour();
 #endif
 
 int main(){
-    int num_generated = 0;
     int children_pids[NUM_CHILD];
 
     for (int i = 0; i < NUM_CHILD; i++){
@@ -37,7 +36,7 @@ int main(){
             printf("parent[%d]: failed to create one child process, aborting...\n", getpid());
 
             // kill all children with SIGTERM and exit with code 1
-            for (int i = 0; i < num_generated; i++) kill(children_pids[i], SIGTERM);
+            for (int j = 0; j < i; j++) kill(children_pids[j], SIGTERM);
             return 1;
         }
         else{
@@ -46,7 +45,7 @@ int main(){
                 // parent code that runs only once 
                 if (i == 0){
                     // ignore all signals
-                    for (int i = 0; i < NSIG; i++) signal(i, SIG_IGN);
+                    for (int j = 0; j < NSIG; j++) signal(j, SIG_IGN);
 
                     // immediately restore signal handlers as needed
                     signal(SIGCHLD, SIG_DFL);
@@ -55,7 +54,7 @@ int main(){
             #endif
 
             // keep track of children so they don't get lost
-            children_pids[num_generated++] = process_id;
+            children_pids[i] = process_id;
 
             // sleep after creation of each child
             sleep(1);
@@ -64,7 +63,7 @@ int main(){
                 // check if interrupted
                 if (interrupted) {
                     // kill all children and leave
-                    for (int i = 0; i < num_generated; i++) kill(children_pids[i], SIGTERM);
+                    for (int j = 0; j <= i; j++) kill(children_pids[j], SIGTERM);
                     break;
                 }
             #endif
