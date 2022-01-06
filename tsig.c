@@ -2,22 +2,32 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <stdbool.h>
+#include <signal.h>
+#include <stdlib.h>
 
 #define NUM_CHILD 5
-#define SLEEP_TIME 10
-#define FORK_DELAY 1
 
-int create_child();
 int child_labour();
+
+#ifdef WITH_SIGNALS
+    void interrupt();
+    void terminate_self();
+
+    bool interrupted = false;
+#endif
 
 int main(){
 
     int num_generated = 0;
     int children_pids[NUM_CHILD];
-    int process_id;
+    
+    #ifdef WITH_SIGNALS
+        bool first_time = true;
+    #endif
 
     for (int i = 0; i < NUM_CHILD; i++){
-        process_id = fork();
+        int process_id = fork();
     
         // success in process creation (block goes to child)
         if (process_id == 0){
@@ -27,56 +37,96 @@ int main(){
         // error in process creation (block goes to parent)
         else if (process_id < 0){
             int c_id = getpid();
-            printf("parent[%d]: failed to create a child process.\n", getpid());
+            printf("parent[%d]: failed to create one child process, aborting...\n", getpid());
 
-            // latest procreation failed, kill all children with SIGTERM and exit with code 1
-            for (int i = 0; i < NUM_CHILD; i++){
-                if (children_pids[i]){
-                    int c_id = getpid();
-                    int child_id = children_pids[i];
-                    kill(children_pids[i], SIGTERM);
-                    printf("parent[%d]: child process with id %d sent a termination signal.\n", c_id, child_id);
-                } 
-            }
+            // kill all children with SIGTERM and exit with code 1
+            for (int i = 0; i < num_generated; i++) kill(children_pids[i], SIGTERM);
             return 1;
         }
         // block for parent process
         else{
+            #ifdef WITH_SIGNALS
+                // code that only runs once
+                if (first_time){
+                    // ignore all signals
+                    for (int i = 0; i < NSIG; i++) signal(i, SIG_IGN);
+
+                    // immediately restore signal handlers as needed
+                    signal(SIGCHLD, SIG_DFL);
+                    signal(SIGINT, interrupt);
+
+                    first_time = false;
+                }
+            #endif
+
             // keep track of children so they don't get lost
             children_pids[num_generated++] = process_id;
 
             // sleep after creation of each child
-            sleep(FORK_DELAY);
+            sleep(1);
+
+            #ifdef WITH_SIGNALS
+                // check if interrupted
+                if (interrupted) {
+                    // kill and leave the loop
+                    for (int i = 0; i < num_generated; i++) kill(children_pids[i], SIGTERM);
+                    break;
+                }
+            #endif
         }
     }
 
     int c_id = getpid();
 
-    // after every child has been created, notify creation of all children 
-    printf("parent[%d]: all children processes created.\n", c_id);
-    
+    #ifdef WITH_SIGNALS
+        // notify complete creation or interruption
+        if (interrupted) printf("parent[%d]: child creation process interrupted.\n", c_id);
+        else printf("parent[%d]: all children processes created.\n", c_id);
+    #else
+        printf("parent[%d]: all children processes created.\n", c_id);
+    #endif
+
+
     // wait for all children to exit, then notify and exit.
-    int exit_code;
-    int exit_pid;
     int num_terminations = 0;
-
-    while ((exit_pid = wait(&exit_code)) != -1){
-        // wait for an exit code, determine the pid of the exiting child process
-        printf("parent[%d]: received exit code %d from child with pid %d.\n", c_id, exit_code, exit_pid);
-        num_terminations++;
-    }
-
-    // print the number of termination codes received.
+    while (wait(NULL) != -1) num_terminations++;
+    printf("parent[%d]: there are no more child processes.\n", c_id);
     printf("parent[%d]: received %d exit codes.\n", c_id, num_terminations);
-    printf("parent[%d]: all children processes exited.\n", c_id);
+
+    #ifdef WITH_SIGNALS
+        // restoring old service handlers of all the signals
+        for (int i = 0; i < NSIG; i++) signal(i, SIG_DFL);
+    #endif
 
     return 0;
 }
 
-int child_labour(){
+int child_labour(){ 
+    #ifdef WITH_SIGNALS
+        // signal handlers
+        signal(SIGINT, SIG_IGN);
+        signal(SIGTERM, terminate_self);
+    #endif
+
+    // the process itself
     int c_id = getpid();
     printf("child[%d]: process with parent PID %d started.\n", c_id, getppid());
-    sleep(SLEEP_TIME);
-    printf("child[%d]: process completed.\n", c_id);
+    sleep(10);
+    printf("child[%d]: execution complete.\n", c_id);
+
     return 0;
 }
+
+#ifdef WITH_SIGNALS
+    void interrupt(){
+        // signal handler for keyboard interrupt (SIGINT) for parent process
+        printf("\nparent[%d]: received an interrupt signal.\n", getpid());
+        interrupted = true;
+    }
+
+    void terminate_self(){
+        // signal handler for termination signal (SIGTERM) for child process
+        printf("child[%d]: received a SIGTERM, terminating...\n", getpid());
+        _exit(1);
+    }
+#endif
