@@ -22,10 +22,6 @@ int child_labour();
 int main(){
     int num_generated = 0;
     int children_pids[NUM_CHILD];
-    
-    #ifdef WITH_SIGNALS
-        bool first_time = true;
-    #endif
 
     for (int i = 0; i < NUM_CHILD; i++){
         int process_id = fork();
@@ -47,16 +43,14 @@ int main(){
         else{
             // block for parent process
             #ifdef WITH_SIGNALS
-                // code that only runs once
-                if (first_time){
+                // parent code that runs only once 
+                if (i == 0){
                     // ignore all signals
                     for (int i = 0; i < NSIG; i++) signal(i, SIG_IGN);
 
                     // immediately restore signal handlers as needed
                     signal(SIGCHLD, SIG_DFL);
                     signal(SIGINT, interrupt);
-
-                    first_time = false;
                 }
             #endif
 
