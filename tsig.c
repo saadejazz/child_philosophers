@@ -42,7 +42,7 @@ int main(){
                 // parent code that runs only once 
                 if (i == 0){
                     // ignore all signals
-                    for (int j = 0; j < NSIG; j++) signal(j, SIG_IGN);
+                    for (int j = 1; j < NSIG; j++) signal(j, SIG_IGN);
 
                     // immediately restore signal handlers as needed
                     signal(SIGCHLD, SIG_DFL);
@@ -86,7 +86,7 @@ int main(){
 
     #ifdef WITH_SIGNALS
         // restoring default service handlers of all the signals
-        for (int i = 0; i < NSIG; i++) signal(i, SIG_DFL);
+        for (int i = 1; i < NSIG; i++) signal(i, SIG_DFL);
     #endif
 
     return 0;
