@@ -22,23 +22,22 @@ int main(){
 
     #ifdef WITH_SIGNALS
         // ignore all signals
-        for (int j = 1; j < NSIG; j++) signal(j, SIG_IGN);
+        struct sigaction info;
+        info.sa_handler = SIG_IGN;
+        for (int j = 1; j < NSIG; j++) sigaction(j, &info, NULL);
 
+        info.sa_handler = SIG_DFL;
         // immediately restore signal handlers as needed
-        signal(SIGCHLD, SIG_DFL);
-        signal(SIGINT, interrupt);
+        sigaction(SIGCHLD, &info, NULL);
+        info.sa_handler = interrupt;
+        info.sa_flags = SA_RESTART;
+        sigaction(SIGINT, &info, NULL);
     #endif
 
     for (int i = 0; i < NUM_CHILD; i++){
         int process_id = fork();
     
         if (process_id == 0){
-            #ifdef WITH_SIGNALS
-                // signal handlers for termintaion and interrupt
-                signal(SIGINT, SIG_IGN);
-                signal(SIGTERM, terminate_self);
-            #endif
-
             // success in process creation (block goes to child)
             printf("child[%d]: process successfully created.\n", getpid());
             return child_labour();
@@ -83,19 +82,31 @@ int main(){
 
     // wait for all children to exit, then notify and exit.
     int num_terminations = 0;
-    while (wait(NULL) != -1) num_terminations++;
+    while (wait(NULL) != -1){
+        num_terminations++;
+    } 
+    
     printf("parent[%d]: there are no more child processes.\n", c_id);
     printf("parent[%d]: received %d exit codes.\n", c_id, num_terminations);
 
-    #ifdef WITH_SIGNALS
-        // restoring default service handlers of all the signals
-        for (int i = 1; i < NSIG; i++) signal(i, SIG_DFL);
-    #endif
+    // #ifdef WITH_SIGNALS
+    //     // restoring default service handlers of all the signals
+    //     for (int i = 1; i < NSIG; i++) signal(i, SIG_DFL);
+    // #endif
 
     return 0;
 }
 
 int child_labour(){ 
+    #ifdef WITH_SIGNALS
+        // signal handlers for termintaion and interrupt
+        struct sigaction info;
+        info.sa_handler = SIG_IGN;
+        sigaction(SIGINT, &info, NULL);
+        info.sa_handler = terminate_self;
+        sigaction(SIGTERM, &info, NULL);
+    #endif
+
     // the process itself
     int c_id = getpid();
     printf("child[%d]: process with parent PID %d started.\n", c_id, getppid());
