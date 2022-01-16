@@ -12,7 +12,6 @@
 #define EATING 1
 #define HUNGRY 2
 
-
 struct shm{
     int state[N];
 } *shared_memory;
@@ -26,9 +25,12 @@ union semun{
 
 void initialize_shared_memory(){
     int shmid = shmget(IPC_PRIVATE, sizeof(*shared_memory), IPC_CREAT | 0666);
+    printf("Shared memory attached at %d.\n", shmid);
+
     if ((shared_memory = (struct shm*) shmat(shmid, NULL, 0)) != (struct shm*) -1){
-        printf ("shared memory attached at address %pn \n", shared_memory);
+        printf("shmat successfull.\n");
     }
+    else printf("shmat unsuccessful.\n");
 }
 
 int main(){
@@ -41,7 +43,7 @@ int main(){
     int semid = semget(IPC_PRIVATE, N + 1, IPC_CREAT | 0666);
     printf("semaphores group id: %d \n", semid);
     
-    // setting all semaphores to 0
+    // setting all semaphores to a value
     ushort semval[N + 1];
     for (int i = 0; i < N + 1; i++) semval[i] = 2;
     arg.array = semval;
