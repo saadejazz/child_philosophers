@@ -80,7 +80,6 @@ int main(){
         printf("parent[%d]: all children processes created.\n", c_id);
     #endif
 
-
     // wait for all children to exit, then notify and exit.
     int num_terminations = 0;
     while (wait(NULL) != -1) num_terminations++;
