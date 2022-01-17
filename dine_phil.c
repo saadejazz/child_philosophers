@@ -15,7 +15,6 @@
 #define LEFT (i + N - 1) % N
 #define RIGHT (i + 1) % N
 
-
 int semid;
 
 void up(int sem_num);
@@ -65,18 +64,13 @@ int main(){
     arg.array = semval;
     semctl(semid, 0, SETALL, arg);
 
-    // arg.val = 0;
+    // arg.val = 5;
     // semctl(semid, N, SETVAL, arg);
-
-    // up(3);
-    // down(2);
-    // up(2);
 
     // arg.array = semval;
     // semctl(semid, 0, GETALL, arg);
     // for (int i = 0; i < N + 1; i++) printf("%d \n", semval[i]);
 
-    printf("Check");
     int philosophers[N];
 
     for (int i = 0; i < N; i++){
@@ -85,8 +79,16 @@ int main(){
             // success in process creation (block goes to child)
             int c_id = getpid();
             printf("A philosopher is born. \n");
+
+            // // wait for everyone
+            // down(N);
+            // man_sem(N, 0);
+
+            // // the laast philosopher starts the dinner
+            // if (i == N - 1) up(N);
+
             while (1)
-            {
+            {   
                 printf("philosopher[%d, %d]: started thinking. \n", c_id, i);
                 think();
                 printf("philosopher[%d, %d]: stopped thinking. \n", c_id, i);
@@ -109,7 +111,6 @@ int main(){
         }
         else{
             // block for parent process
-            // keep track of children so they don't get lost
             philosophers[i] = process_id;
         }
     }
@@ -130,6 +131,7 @@ void man_sem(int sem_num, int add){
     struct sembuf sems;
     sems.sem_num = sem_num;
     sems.sem_op = add;
+    sems.sem_flg = SEM_UNDO;
     int ecode = semop(semid, &sems, 1);
     if (ecode == -1) fprintf(stderr, "semaphore failed.\n");
 }
@@ -140,12 +142,12 @@ void eat(){
 }
 
 void think(){
-    sleep(2);
+    sleep(1);
 }
 
 void take_forks(int i){
     down(N);
-    shared_memory->state[i] == HUNGRY;
+    shared_memory->state[i] = HUNGRY;
     test(i);
     up(N);
     down(i);
@@ -161,7 +163,7 @@ void put_forks(int i){
 
 void test(int i){
     if (shared_memory->state[i] == HUNGRY &&
-        shared_memory->state[LEFT] != HUNGRY &&
+        shared_memory->state[LEFT] != EATING &&
         shared_memory->state[RIGHT] != EATING){
             shared_memory->state[i] = EATING;
             up(i);
