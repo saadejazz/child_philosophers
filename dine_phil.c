@@ -58,15 +58,14 @@ int main(){
     semid = semget(IPC_PRIVATE, N + 1, IPC_CREAT | 0666);
     printf("semaphores group id: %d \n", semid);
     
-    // setting all semaphores to 1
+    // setting initial values for all semaphores
     ushort semval[N + 1];
-    for (int i = 0; i < N + 1; i++) semval[i] = 1;
+    for (int i = 0; i < N + 1; i++) semval[i] = 0;
+    semval[N] = N;
     arg.array = semval;
     semctl(semid, 0, SETALL, arg);
 
-    // arg.val = 5;
-    // semctl(semid, N, SETVAL, arg);
-
+    // // print all initial values of semaphores if needed 
     // arg.array = semval;
     // semctl(semid, 0, GETALL, arg);
     // for (int i = 0; i < N + 1; i++) printf("%d \n", semval[i]);
@@ -80,12 +79,12 @@ int main(){
             int c_id = getpid();
             printf("A philosopher is born. \n");
 
-            // // wait for everyone
-            // down(N);
-            // man_sem(N, 0);
+            // wait for everyone
+            down(N);
+            man_sem(N, 0);
 
-            // // the laast philosopher starts the dinner
-            // if (i == N - 1) up(N);
+            // the last philosopher starts the dinner
+            if (i == N - 1) up(N);
 
             while (1)
             {   
